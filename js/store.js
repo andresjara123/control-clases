@@ -70,6 +70,7 @@ export class Store {
     }
     this.clases = datos.clases.slice().sort(compararClases);
     this.festivos = datos.festivos.slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
+    await this._reconciliar();
     this.listo = true;
     this._emitir();
   }
@@ -86,6 +87,48 @@ export class Store {
   }
 
   // ---- Marcar / desmarcar ----------------------------------------------------
+
+  /**
+   * Regla: cada módulo se ve una sola vez. Si un módulo tiene una clase REALIZADA, todas sus
+   * demás clases PENDIENTES quedan realizadas (cubiertaPor = la clase que sí se tomó).
+   * Se ejecuta al abrir la app (arregla datos guardados antes de esta regla) y tras agregar,
+   * editar, eliminar, importar o desmarcar. Devuelve cuántas clases cambió.
+   */
+  async _reconciliar() {
+    const ahora = this._ahoraISO();
+    let cambios = 0;
+    // 1) Las cubiertas cuyo origen ya no está realizado vuelven a pendiente.
+    for (const c of this.clases.slice()) {
+      if (!c.cubiertaPor) continue;
+      const origen = this.obtener(c.cubiertaPor);
+      if (!origen || origen.estado !== 'REALIZADA' || c.estado !== 'REALIZADA') {
+        await this._guardarClase(normalizar({ ...c, estado: c.estado === 'REALIZADA' ? 'PENDIENTE' : c.estado, fechaRealizada: null, cubiertaPor: null }, ahora));
+        cambios++;
+      }
+    }
+    // 2) Por cada módulo ya visto, las pendientes se marcan como cubiertas.
+    const origenes = new Map();
+    for (const c of this.clases) {
+      if (c.estado !== 'REALIZADA' || c.cubiertaPor) continue;
+      const k = `${c.categoria}#${c.modulo}`;
+      const previo = origenes.get(k);
+      if (!previo || (c.fechaRealizada || '') < (previo.fechaRealizada || '')) origenes.set(k, c);
+    }
+    for (const c of this.clases.slice()) {
+      const origen = origenes.get(`${c.categoria}#${c.modulo}`);
+      if (!origen) continue;
+      // Duplicados de datos antiguos: otra clase del mismo módulo marcada a mano → queda enlazada al origen.
+      if (c.estado === 'REALIZADA' && !c.cubiertaPor && c.id !== origen.id) {
+        await this._guardarClase(normalizar({ ...c, cubiertaPor: origen.id }, ahora));
+        cambios++;
+        continue;
+      }
+      if (c.estado !== 'PENDIENTE') continue;
+      await this._guardarClase(normalizar({ ...c, estado: 'REALIZADA', fechaRealizada: origen.fechaRealizada || ahora, cubiertaPor: origen.id }, ahora));
+      cambios++;
+    }
+    return cambios;
+  }
 
   /**
    * Marca la clase como realizada. Como cada módulo se ve una sola vez, las demás clases
@@ -109,14 +152,17 @@ export class Store {
 
   /** Desmarca la clase y revierte las que se habían marcado automáticamente por ella. */
   async desmarcar(id) {
-    const c = this.obtener(id);
+    let c = this.obtener(id);
     if (!c) return { ok: false, errores: ['La clase ya no existe.'] };
+    // Desmarcar una clase "cubierta" deshace el módulo completo: se desmarca la clase que sí se tomó.
+    if (c.cubiertaPor && this.obtener(c.cubiertaPor)) { id = c.cubiertaPor; c = this.obtener(id); }
     const ahora = this._ahoraISO();
     await this._guardarClase(normalizar({ ...c, estado: 'PENDIENTE', fechaRealizada: null, cubiertaPor: null }, ahora));
     const revertir = this.clases.filter((o) => o.cubiertaPor === id && o.estado === 'REALIZADA');
     for (const o of revertir) {
       await this._guardarClase(normalizar({ ...o, estado: 'PENDIENTE', fechaRealizada: null, cubiertaPor: null }, ahora));
     }
+    await this._reconciliar();
     this._emitir();
     return { ok: true, revertidas: revertir.length };
   }
@@ -136,8 +182,9 @@ export class Store {
     await this.repo.crearClase(c);
     this.clases.push(c);
     this.clases.sort(compararClases);
+    await this._reconciliar();
     this._emitir();
-    return { ok: true, clase: c };
+    return { ok: true, clase: this.obtener(c.id) };
   }
 
   async editarClase(id, cambios) {
@@ -148,14 +195,16 @@ export class Store {
     const errores = validarClase(nueva, this.clases.filter((o) => o.id !== id));
     if (errores.length) return { ok: false, errores };
     await this._guardarClase(nueva);
+    await this._reconciliar();
     this._emitir();
-    return { ok: true, clase: nueva };
+    return { ok: true, clase: this.obtener(id) };
   }
 
   async eliminarClase(id) {
     if (!this.obtener(id)) return { ok: false, errores: ['La clase ya no existe.'] };
     await this.repo.eliminarClase(id);
     this.clases = this.clases.filter((c) => c.id !== id);
+    await this._reconciliar();
     this._emitir();
     return { ok: true };
   }
@@ -181,6 +230,7 @@ export class Store {
     await this.repo.crearClase(copia);
     this.clases.push(copia);
     await this._guardarClase(normalizar({ ...orig, estado: 'REPROGRAMADA', fechaRealizada: null, reprogramadaA: copia.id }, this._ahoraISO()));
+    await this._reconciliar();
     this._emitir();
     return { ok: true, clase: copia };
   }
@@ -237,6 +287,7 @@ export class Store {
     }
     this.clases.sort(compararClases);
     this.festivos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    await this._reconciliar();
     this._emitir();
     return { ok: true, ...prev };
   }
@@ -274,6 +325,7 @@ export class Store {
     await this.repo.reemplazarTodo({ version: 1, clases, festivos });
     this.clases = clases.sort(compararClases);
     this.festivos = festivos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    await this._reconciliar();
     this._emitir();
     return { ok: true, clases: clases.length };
   }

@@ -292,6 +292,36 @@ test('store: al realizar un módulo se marcan las demás clases de ese módulo y
   assert.equal(otro.obtener(v1[3]).estado, 'CANCELADA');
 });
 
+test('store: datos guardados antes de la regla se concilian al abrir (lo ya visto cubre los días siguientes)', async () => {
+  const { storage } = await nuevoStore();
+  // Simula la versión anterior: dos clases marcadas a mano (V1 del 4 y del 10 nov), sin "cubiertaPor".
+  const K = 'control-clases:datos:v1';
+  const crudo = JSON.parse(storage.getItem(K));
+  for (const id of ['2026-11-04-4', '2026-11-10-2']) {
+    const c = crudo.clases.find((x) => x.id === id);
+    c.estado = 'REALIZADA';
+    c.fechaRealizada = id === '2026-11-04-4' ? '2026-11-04T22:00:00.000Z' : '2026-11-10T22:00:00.000Z';
+  }
+  storage.setItem(K, JSON.stringify(crudo));
+  const { s, storage: st } = await nuevoStore(storage);
+  const v1 = s.clases.filter((c) => c.categoria === 'VEHICULO' && c.modulo === 1);
+  assert.equal(v1.length, 4);
+  assert.ok(v1.every((c) => c.estado === 'REALIZADA'), 'las del 18 y 24 nov también quedan vistas');
+  assert.equal(s.obtener('2026-11-18-2').cubiertaPor, '2026-11-04-4', 'se enlaza a la primera realizada');
+  assert.equal(s.obtener('2026-11-10-2').cubiertaPor, '2026-11-04-4', 'la marcada a mano duplicada también se enlaza');
+  // Quedó guardado
+  const { s: otro } = await nuevoStore(st);
+  assert.equal(otro.obtener('2026-11-24-3').estado, 'REALIZADA');
+  // Desmarcar una "cubierta" deshace el módulo completo
+  await otro.desmarcar('2026-11-18-2');
+  assert.ok(otro.clases.filter((c) => c.categoria === 'VEHICULO' && c.modulo === 1).every((c) => c.estado === 'PENDIENTE'));
+  // Una clase nueva de un módulo ya visto nace vista
+  const { s: s3 } = await nuevoStore();
+  await s3.marcarRealizada('2026-11-04-1');
+  const n = await s3.agregarClase({ fecha: '2026-12-02', inicio: '08:00', fin: '10:00', categoria: 'NORMAS', modulo: 1 });
+  assert.equal(n.clase.estado, 'REALIZADA');
+});
+
 test('store: alternar realizada', async () => {
   const { s } = await nuevoStore();
   await s.alternarRealizada('2026-11-04-1');

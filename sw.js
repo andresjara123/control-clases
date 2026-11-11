@@ -2,7 +2,7 @@
 //
 // IMPORTANTE: cada vez que publiques cambios en cualquier archivo, sube el número de VERSION.
 // Así los dispositivos descargan la versión nueva (la verán al abrir la app una segunda vez).
-const VERSION = '1.1.1';
+const VERSION = '1.2.0';
 const CACHE = `control-clases-${VERSION}`;
 
 const ARCHIVOS = [
