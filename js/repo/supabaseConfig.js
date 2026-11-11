@@ -8,7 +8,7 @@
 // Mientras `anonKey` esté vacía, la app funciona solo con almacenamiento local.
 export const SUPABASE = {
   url: 'https://xqexhexjhljyyrazijly.supabase.co',
-  anonKey: '',
+  anonKey: 'sb_publishable_gpYG3ncRBvzXcRr0I0B41w_xISqmoge',
 };
 
 export function nubeConfigurada(cfg = SUPABASE) {
