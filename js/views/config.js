@@ -1,6 +1,7 @@
 // Configuración: instalación, copias de seguridad, meses nuevos, festivos y almacenamiento.
 import { h } from '../utils/dom.js';
 import { APP_VERSION } from '../config.js';
+import { seccionCuenta } from './cuenta.js';
 import { fechaLarga, hoyISO } from '../utils/dates.js';
 import { confirmar } from '../ui.js';
 
@@ -83,7 +84,7 @@ function seccionCopias(ctx) {
     'section',
     { class: 'card cfg' },
     h('h2', {}, '💾 Copias de seguridad'),
-    h('p', { class: 'nota' }, 'Tus datos se guardan en este dispositivo. Descarga una copia de vez en cuando; sirve también para pasar tus clases a otro celular.'),
+    h('p', { class: 'nota' }, 'Tus datos se guardan en este dispositivo (y en la nube si iniciaste sesión). Descarga una copia de vez en cuando; sirve también para pasar tus clases a otro celular.'),
     h(
       'div',
       { class: 'fila-botones' },
@@ -204,6 +205,7 @@ export function vistaConfig(ctx) {
     'div',
     {},
     h('h2', { class: 'titulo-vista' }, 'Configuración'),
+    seccionCuenta(ctx),
     seccionInstalar(ctx),
     seccionMeses(ctx),
     seccionFestivos(ctx),

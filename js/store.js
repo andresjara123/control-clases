@@ -75,6 +75,23 @@ export class Store {
     this._emitir();
   }
 
+  /**
+   * Vuelve a leer del repositorio (con la nube: sincroniza y descarga lo hecho en otro dispositivo).
+   * Solo repinta si algo cambió. Devuelve true si hubo cambios.
+   */
+  async recargar() {
+    const datos = await this.repo.cargar();
+    if (!datos) return false;
+    const clases = datos.clases.slice().sort(compararClases);
+    const festivos = datos.festivos.slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
+    if (JSON.stringify(clases) === JSON.stringify(this.clases) && JSON.stringify(festivos) === JSON.stringify(this.festivos)) return false;
+    this.clases = clases;
+    this.festivos = festivos;
+    await this._reconciliar();
+    this._emitir();
+    return true;
+  }
+
   obtener(id) {
     return this.clases.find((c) => c.id === id) || null;
   }

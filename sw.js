@@ -2,7 +2,7 @@
 //
 // IMPORTANTE: cada vez que publiques cambios en cualquier archivo, sube el número de VERSION.
 // Así los dispositivos descargan la versión nueva (la verán al abrir la app una segunda vez).
-const VERSION = '1.2.0';
+const VERSION = '2.0.0';
 const CACHE = `control-clases-${VERSION}`;
 
 const ARCHIVOS = [
@@ -19,12 +19,17 @@ const ARCHIVOS = [
   'js/data/seed.js',
   'js/repo/localRepository.js',
   'js/repo/httpRepository.js',
+  'js/repo/supabaseConfig.js',
+  'js/repo/supabaseAuth.js',
+  'js/repo/supabaseRepository.js',
+  'js/repo/syncRepository.js',
   'js/utils/dates.js',
   'js/utils/dom.js',
   'js/views/calendario.js',
   'js/views/claseForm.js',
   'js/views/clases.js',
   'js/views/config.js',
+  'js/views/cuenta.js',
   'js/views/inicio.js',
   'js/views/progreso.js',
   'icons/icon-192.png',

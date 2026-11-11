@@ -32,8 +32,20 @@ Al publicar cambios, sube `VERSION` en `sw.js` para que los celulares descarguen
 - **iPhone (Safari):** abre la URL → botón Compartir → "Añadir a pantalla de inicio" → Añadir.
 - **Computador (Chrome/Edge):** icono de instalar en la barra de direcciones.
 
+## Base de datos en la nube (Supabase)
+La app guarda siempre primero en el dispositivo y sube los cambios a PostgreSQL (Supabase) en segundo plano. Funciona sin internet: los cambios quedan en una cola y se envían al volver la conexión.
+
+**Activarla (una sola vez, ~5 minutos):**
+1. En Supabase → **SQL Editor → New query**: pega todo `supabase/schema.sql` y pulsa **Run** (crea las tablas `clases` y `festivos` con seguridad por usuario).
+2. En **Project Settings → API Keys** copia la clave pública (**anon** o **publishable**; *nunca* la `service_role`/`secret`) y pégala en `js/repo/supabaseConfig.js` → `anonKey`. La URL del proyecto ya está puesta.
+3. (Opcional, uso personal) en **Authentication → Sign In / Providers → Email** desactiva *Confirm email* para entrar apenas crees la cuenta. En **Authentication → URL Configuration** pon como *Site URL* la dirección donde publicaste la app.
+4. Sube los cambios a GitHub (y sube `VERSION` en `sw.js` si ya la tenías instalada). Al abrir la app aparecerá la pantalla para crear tu cuenta.
+
+**Cómo se sincroniza:** el primer dispositivo que inicia sesión sube sus datos; los demás descargan lo de la nube (si el dispositivo tenía datos distintos se guarda un respaldo local). Al volver a abrir la app o recuperar la conexión se traen los cambios de otros dispositivos. El icono ☁️ del encabezado muestra el estado (✓ guardado, ↻ enviando, ⚠ problema). En Configuración hay «Sincronizar ahora» y «Cerrar sesión».
+**Plan gratuito:** 500 MB y un proyecto se pausa tras 1 semana sin actividad (se reactiva desde el panel); no incluye copias automáticas, por eso se mantiene el botón de exportar copia.
+
 ## Datos y persistencia
-Se guardan en el `localStorage` del navegador de cada dispositivo (sobreviven a cerrar el navegador o apagar el celular). No se sincronizan entre dispositivos: usa **Configuración → Exportar copia / Importar copia** para respaldar o pasar los datos. Borrar los datos del sitio en el navegador borra el progreso.
+Se guardan en el `localStorage` del navegador de cada dispositivo (sobreviven a cerrar el navegador o apagar el celular) y, si activas Supabase e inicias sesión, también en la nube y se sincronizan entre dispositivos. Sin cuenta no se sincronizan: usa **Configuración → Exportar copia / Importar copia** para respaldar o pasar los datos. Borrar los datos del sitio en el navegador borra el progreso.
 
 ## Estructura
 ```
@@ -43,7 +55,8 @@ js/store.js          estado + operaciones (marcar, editar, reprogramar, importar
 js/logic.js          cálculos puros (avance, filtros, siguiente módulo)
 js/config.js         categorías, estados, horarios
 js/data/seed.js      horario de noviembre 2026
-js/repo/             localRepository (actual) · httpRepository (futuro backend)
+js/repo/             localRepository · supabase{Config,Auth,Repository} · syncRepository (cola + nube) · httpRepository (futuro Spring Boot)
+supabase/schema.sql  tablas y seguridad (RLS) de PostgreSQL
 js/views/            inicio, calendario, clases, progreso, config, claseForm
 tests/               pruebas de lógica y repositorios
 ```
