@@ -1,0 +1,11 @@
+{
+  "name": "control-clases-conduccion",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PWA para llevar el control de las clases teóricas de un curso de conducción",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
