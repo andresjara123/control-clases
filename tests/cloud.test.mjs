@@ -155,3 +155,13 @@ test('si la nube rechaza un cambio (4xx) no bloquea la cola', async () => {
   assert.equal(A.sync.resumen().pendientes, 0);
   assert.match(A.sync.resumen().error, /rechaz/);
 });
+
+test('el correo se normaliza a minúsculas al registrar y al entrar', async () => {
+  const srv = crearServidor();
+  const { auth } = await dispositivo(srv);
+  await auth.registrar('  Jara@Ejemplo.CO ', 'secreto1');
+  assert.ok(srv.usuarios.has('jara@ejemplo.co'));
+  await auth.cerrarSesion();
+  await auth.iniciarSesion('JARA@EJEMPLO.co', 'secreto1');
+  assert.equal(auth.haySesion(), true);
+});

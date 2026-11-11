@@ -99,14 +99,14 @@ export class SupabaseAuth {
   }
 
   async iniciarSesion(email, password) {
-    const d = await this._post('/token?grant_type=password', { email: String(email).trim(), password });
+    const d = await this._post('/token?grant_type=password', { email: String(email).trim().toLowerCase(), password });
     this._guardar(this._aSesion(d));
     return { ok: true };
   }
 
   /** @returns {{sesion:boolean}} sesion=false cuando el proyecto exige confirmar el correo primero. */
   async registrar(email, password) {
-    const d = await this._post('/signup', { email: String(email).trim(), password });
+    const d = await this._post('/signup', { email: String(email).trim().toLowerCase(), password });
     if (d?.access_token) {
       this._guardar(this._aSesion(d));
       return { sesion: true };
