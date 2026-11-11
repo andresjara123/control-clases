@@ -30,6 +30,8 @@ function normalizar(c, ahoraISO) {
   };
   if (c.reprogramadaDe) out.reprogramadaDe = c.reprogramadaDe;
   if (c.reprogramadaA) out.reprogramadaA = c.reprogramadaA;
+  // Clase marcada automáticamente porque otra oferta del mismo módulo ya se realizó.
+  if (estado === 'REALIZADA' && c.cubiertaPor) out.cubiertaPor = c.cubiertaPor;
   return out;
 }
 
@@ -85,20 +87,38 @@ export class Store {
 
   // ---- Marcar / desmarcar ----------------------------------------------------
 
+  /**
+   * Marca la clase como realizada. Como cada módulo se ve una sola vez, las demás clases
+   * PENDIENTES del mismo módulo (otros días) se marcan también y quedan enlazadas a esta
+   * (campo cubiertaPor) para poder revertirlas si se desmarca.
+   */
   async marcarRealizada(id) {
     const c = this.obtener(id);
     if (!c) return { ok: false, errores: ['La clase ya no existe.'] };
-    await this._guardarClase(normalizar({ ...c, estado: 'REALIZADA', fechaRealizada: this._ahoraISO() }, this._ahoraISO()));
+    const ahora = this._ahoraISO();
+    await this._guardarClase(normalizar({ ...c, estado: 'REALIZADA', fechaRealizada: ahora, cubiertaPor: null }, ahora));
+    const otras = this.clases.filter(
+      (o) => o.id !== id && o.categoria === c.categoria && o.modulo === c.modulo && o.estado === 'PENDIENTE',
+    );
+    for (const o of otras) {
+      await this._guardarClase(normalizar({ ...o, estado: 'REALIZADA', fechaRealizada: ahora, cubiertaPor: id }, ahora));
+    }
     this._emitir();
-    return { ok: true };
+    return { ok: true, cubiertas: otras.length };
   }
 
+  /** Desmarca la clase y revierte las que se habían marcado automáticamente por ella. */
   async desmarcar(id) {
     const c = this.obtener(id);
     if (!c) return { ok: false, errores: ['La clase ya no existe.'] };
-    await this._guardarClase(normalizar({ ...c, estado: 'PENDIENTE', fechaRealizada: null }, this._ahoraISO()));
+    const ahora = this._ahoraISO();
+    await this._guardarClase(normalizar({ ...c, estado: 'PENDIENTE', fechaRealizada: null, cubiertaPor: null }, ahora));
+    const revertir = this.clases.filter((o) => o.cubiertaPor === id && o.estado === 'REALIZADA');
+    for (const o of revertir) {
+      await this._guardarClase(normalizar({ ...o, estado: 'PENDIENTE', fechaRealizada: null, cubiertaPor: null }, ahora));
+    }
     this._emitir();
-    return { ok: true };
+    return { ok: true, revertidas: revertir.length };
   }
 
   async alternarRealizada(id) {

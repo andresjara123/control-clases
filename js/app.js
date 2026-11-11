@@ -69,7 +69,10 @@ const ctx = {
   async alternar(id) {
     const antes = store.obtener(id);
     const r = await run(() => store.alternarRealizada(id));
-    if (r.ok && antes) toast(antes.estado === 'REALIZADA' ? 'Clase desmarcada' : '✓ Clase marcada como realizada');
+    if (r.ok && antes) {
+      if (antes.estado === 'REALIZADA') toast(r.revertidas ? `Clase desmarcada (y ${r.revertidas} del mismo módulo)` : 'Clase desmarcada');
+      else toast(r.cubiertas ? `✓ Realizada · se marcaron también ${r.cubiertas} clases del mismo módulo` : '✓ Clase marcada como realizada');
+    }
   },
   editar: (clase) => abrirFormularioClase(ctx, { clase }),
   agregar: (fecha) => abrirFormularioClase(ctx, { fecha }),

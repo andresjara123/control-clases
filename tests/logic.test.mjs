@@ -254,7 +254,8 @@ test('store: marcar guarda fecha, actualiza el avance y sobrevive a "cerrar y ab
   const c = s.obtener('2026-11-10-2');
   assert.equal(c.estado, 'REALIZADA');
   assert.equal(c.fechaRealizada, '2026-11-10T21:35:00.000Z');
-  assert.equal(resumen(s.clases).realizadas, 1);
+  assert.equal(r.cubiertas, 3, 'Vehículo 1 se ofrece 4 veces: las otras 3 se marcan también');
+  assert.equal(resumen(s.clases).realizadas, 4);
   assert.equal(progresoGeneral(s.clases).vistos, 1);
 
   const { s: reabierto } = await nuevoStore(storage);
@@ -265,6 +266,30 @@ test('store: marcar guarda fecha, actualiza el avance y sobrevive a "cerrar y ab
   assert.equal(reabierto.obtener('2026-11-10-2').estado, 'PENDIENTE');
   assert.equal(reabierto.obtener('2026-11-10-2').fechaRealizada, null);
   assert.equal(resumen(reabierto.clases).realizadas, 0);
+});
+
+test('store: al realizar un módulo se marcan las demás clases de ese módulo y se revierten al desmarcar', async () => {
+  const { s, storage } = await nuevoStore();
+  const v1 = s.clases.filter((c) => c.categoria === 'VEHICULO' && c.modulo === 1).map((c) => c.id);
+  assert.equal(v1.length, 4);
+  await s.editarClase(v1[3], { estado: 'CANCELADA' });
+  const r = await s.marcarRealizada(v1[0]);
+  assert.equal(r.cubiertas, 2, 'la cancelada no se toca');
+  assert.equal(s.obtener(v1[3]).estado, 'CANCELADA');
+  assert.equal(s.obtener(v1[1]).estado, 'REALIZADA');
+  assert.equal(s.obtener(v1[1]).cubiertaPor, v1[0]);
+  assert.equal(s.obtener(v1[1]).fechaRealizada, s.obtener(v1[0]).fechaRealizada);
+  // otro módulo no cambia
+  assert.equal(s.clases.filter((c) => c.estado === 'REALIZADA').length, 3);
+  // persiste
+  const { s: otro } = await nuevoStore(storage);
+  assert.equal(otro.obtener(v1[2]).estado, 'REALIZADA');
+  // desmarcar el original revierte las automáticas
+  const d = await otro.desmarcar(v1[0]);
+  assert.equal(d.revertidas, 2);
+  assert.equal(otro.clases.filter((c) => c.estado === 'REALIZADA').length, 0);
+  assert.equal(otro.obtener(v1[1]).cubiertaPor, undefined);
+  assert.equal(otro.obtener(v1[3]).estado, 'CANCELADA');
 });
 
 test('store: alternar realizada', async () => {

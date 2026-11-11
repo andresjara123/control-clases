@@ -32,6 +32,10 @@ export function claseCard(ctx, c, { mostrarFecha = true } = {}) {
     const destino = ctx.store.obtener(c.reprogramadaA);
     extras.push(h('span', { class: 'tag' }, destino ? `Movida al ${fechaCorta(destino.fecha)}` : 'Reprogramada'));
   }
+  if (c.cubiertaPor) {
+    const origen = ctx.store.obtener(c.cubiertaPor);
+    extras.push(h('span', { class: 'tag', title: 'Este módulo ya se vio en otra clase' }, origen ? `✓ Módulo visto el ${fechaCorta(origen.fecha)}` : '✓ Módulo ya visto'));
+  }
   if (c.reprogramadaDe) extras.push(h('span', { class: 'tag' }, 'Reprogramada'));
   if (c.marcaVerde) {
     extras.push(h('span', { class: 'tag', title: 'En la imagen del horario esta clase tenía una marca verde' }, '● Marca verde en el horario'));

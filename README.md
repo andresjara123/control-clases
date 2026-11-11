@@ -7,6 +7,8 @@ Sin dependencias ni paso de compilación: son archivos estáticos (HTML + CSS + 
 Inicio (avance, tarjetas, siguiente módulo) · Calendario mensual con colores por categoría · Mis clases (filtros por fecha, categoría, módulo, estado; orden por fecha) · Mi progreso por categoría · Configuración (agregar meses, copias de seguridad, festivos).
 Marcar/desmarcar clases (guarda fecha y hora de realización), editar, eliminar, cambiar estado, reprogramar y agregar clases o meses nuevos.
 
+**Clases únicas:** cada módulo se ve una sola vez. Al marcar una clase como realizada, las demás clases pendientes del mismo módulo (otros días) se marcan también y muestran "✓ Módulo visto el …". Si desmarcas la clase original, esas se revierten. Las canceladas y reprogramadas no se tocan.
+
 **Cómo se calcula el avance:** el horario repite cada módulo varias veces, así que el % principal cuenta *módulos vistos* de 20 (6 Movilidad + 6 Normas + 4 Vehículo + 4 Señalización). Un módulo cuenta como visto al marcar realizada cualquiera de sus clases. También se muestra "clases realizadas: X de 84".
 
 ## Ejecutar localmente
